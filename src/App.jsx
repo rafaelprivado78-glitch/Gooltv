@@ -328,3 +328,208 @@ return (
           </>
         )}
       </div>
+<div style={{ height:"calc(100vh - 195px)",overflowY:"auto",padding:"16px 16px 90px" }}>
+        {tab==="home"&&(
+          <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+            {searchedStreams.map((stream,i)=>{
+              const net=netOf(stream.network);
+              const isMyTeam=favTeam&&stream.teams?.includes(favoriteTeam);
+              return (
+                <div key={stream.id} className="stream-card" style={{ animationDelay:`${i*.06}s`,borderColor:isMyTeam?favTeam.color+"55":"#111" }} onClick={()=>openStream(stream)}>
+                  {isMyTeam&&<div style={{ background:`linear-gradient(90deg,${favTeam.color}22,transparent)`,padding:"6px 14px",fontSize:10,fontWeight:700,color:favTeam.color,letterSpacing:".08em" }}>{favTeam.emoji} JOGO DO SEU TIME</div>}
+                  <div style={{ position:"relative",aspectRatio:"16/9",background:"#0A0A14" }}>
+                    <img src={stream.thumbnail} alt="" style={{ width:"100%",height:"100%",objectFit:"cover",opacity:.8 }} onError={e=>e.target.style.display="none"}/>
+                    <div style={{ position:"absolute",inset:0,background:"linear-gradient(180deg,transparent 30%,#0C0C18 100%)"}}/>
+                    <div style={{ position:"absolute",top:10,left:10,background:net.bg,border:`1px solid ${net.color}55`,borderRadius:6,padding:"3px 9px",fontSize:10,fontWeight:700,color:net.color,display:"flex",alignItems:"center",gap:5 }}>{net.icon} {net.name}</div>
+                    <div style={{ position:"absolute",top:10,right:10 }}><span className="live-pill"><span className="live-dot"/>AO VIVO</span></div>
+                    <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center" }}>
+                      <div style={{ width:54,height:54,borderRadius:"50%",background:"rgba(229,9,20,.9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,paddingLeft:5,boxShadow:"0 0 28px rgba(229,9,20,.4)" }}>▶</div>
+                    </div>
+                    {stream.viewers&&<div style={{ position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,.75)",borderRadius:5,padding:"3px 9px",fontSize:11,fontWeight:700 }}>👁 {stream.viewers}</div>}
+                  </div>
+                  <div style={{ padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
+                    <div style={{ flex:1,paddingRight:10 }}>
+                      <div style={{ fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:4 }}>{stream.title}</div>
+                      <div style={{ fontSize:11,color:"#444" }}>{stream.channel}</div>
+                    </div>
+                    <div style={{ display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end" }}>
+                      {stream.tags.map(tag=>(
+                        <span key={tag} style={{ fontSize:9,fontWeight:700,color:"#E50914",background:"rgba(229,9,20,.1)",borderRadius:4,padding:"2px 7px",letterSpacing:".08em",whiteSpace:"nowrap" }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab==="jogos"&&(
+          <div>
+            {gamesLoading&&games.length===0&&(
+              <div style={{ textAlign:"center",padding:"50px 0" }}>
+                <div style={{ width:40,height:40,borderRadius:"50%",border:"3px solid #111",borderTopColor:"#009B3A",animation:"spin .8s linear infinite",margin:"0 auto 14px" }}/>
+                <div style={{ fontSize:13,color:"#444" }}>🤖 IA buscando jogos...</div>
+              </div>
+            )}
+            {[...new Set(filteredGames.map(g=>g.league))].map(league=>{
+              const lGames=filteredGames.filter(g=>g.league===league);
+              const lc=lGames[0]?.leagueColor||"#444";
+              const li=lGames[0]?.leagueIcon||"⚽";
+              return (
+                <div key={league} style={{ marginBottom:24 }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:12,paddingBottom:10,borderBottom:`1px solid ${lc}33` }}>
+                    <div style={{ width:32,height:32,borderRadius:8,background:`${lc}22`,border:`1px solid ${lc}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16 }}>{li}</div>
+                    <div style={{ fontFamily:"'Oswald',sans-serif",fontSize:14,fontWeight:600,color:lc }}>{league.toUpperCase()}</div>
+                    {lGames.filter(g=>g.status==="live").length>0&&<span className="live-pill"><span className="live-dot"/>{lGames.filter(g=>g.status==="live").length} LIVE</span>}
+                  </div>
+                  <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                    {lGames.map((game,i)=>{
+                      const live=game.status==="live";
+                      const isMyGame=favTeam&&(game.homeId===favoriteTeam||game.awayId===favoriteTeam);
+                      return (
+                        <div key={game.id} className="game-card" style={{ animationDelay:`${i*.04}s`,borderColor:live?"#E5091433":isMyGame?favTeam?.color+"44":"#111" }}>
+                          <div style={{ display:"flex",justifyContent:"space-between",marginBottom:10 }}>
+                            <div style={{ fontSize:10,fontWeight:700,color:live?"#E50914":"#333",display:"flex",alignItems:"center",gap:5 }}>
+                              {live&&<span className="live-dot" style={{ background:"#E50914" }}/>}
+                              {live?`${game.minute?game.minute+"' ":""}AO VIVO`:`📅 ${game.date} • ${game.time}`}
+                            </div>
+                            {game.status==="final"&&<div style={{ fontSize:10,fontWeight:700,color:"#555",background:"#111",borderRadius:4,padding:"2px 8px" }}>ENCERRADO</div>}
+                          </div>
+                          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontSize:14,fontWeight:700,color:game.homeId===favoriteTeam&&favTeam?favTeam.color:"#F0F0FA" }}>{game.home}</div>
+                              <div style={{ fontSize:10,color:"#333",marginTop:2 }}>{game.homeAbbr}</div>
+                            </div>
+                            <div style={{ textAlign:"center",padding:"0 12px",minWidth:80 }}>
+                              {(live||game.status==="final")&&game.homeScore!==null?(
+                                <div style={{ fontFamily:"'Oswald',sans-serif",fontSize:28,fontWeight:700 }}>
+                                  <span style={{ color:game.homeScore>game.awayScore?"#4ADE80":"#F0F0FA" }}>{game.homeScore}</span>
+                                  <span style={{ color:"#1A1A2A",margin:"0 6px" }}>–</span>
+                                  <span style={{ color:game.awayScore>game.homeScore?"#4ADE80":"#F0F0FA" }}>{game.awayScore}</span>
+                                </div>
+                              ):<div style={{ fontSize:11,fontWeight:700,color:"#333" }}>VS</div>}
+                            </div>
+                            <div style={{ flex:1,textAlign:"right" }}>
+                              <div style={{ fontSize:14,fontWeight:700,color:game.awayId===favoriteTeam&&favTeam?favTeam.color:"#F0F0FA" }}>{game.away}</div>
+                              <div style={{ fontSize:10,color:"#333",marginTop:2 }}>{game.awayAbbr}</div>
+                            </div>
+                          </div>
+                          {live&&(
+                            <button onClick={()=>setTab("home")} style={{ marginTop:12,width:"100%",background:"rgba(229,9,20,.08)",border:"1px solid rgba(229,9,20,.2)",borderRadius:8,padding:"9px",color:"#E50914",fontFamily:"'Rajdhani',sans-serif",fontSize:12,fontWeight:700,letterSpacing:".08em",cursor:"pointer" }}>
+                              🔴 VER STREAMS
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab==="meutime"&&(
+          <div style={{ animation:"fadeUp .3s ease" }}>
+            {favTeam?(
+              <>
+                <div style={{ background:`linear-gradient(135deg,${favTeam.color}15,#0C0C18)`,border:`1px solid ${favTeam.color}33`,borderRadius:16,padding:"24px 20px",marginBottom:20,textAlign:"center" }}>
+                  <div style={{ fontSize:56,marginBottom:10 }}>{favTeam.emoji}</div>
+                  <div style={{ fontFamily:"'Oswald',sans-serif",fontSize:26,fontWeight:700,color:favTeam.color }}>{favTeam.name}</div>
+                  <div style={{ display:"flex",gap:8,justifyContent:"center",marginTop:16 }}>
+                    {[{val:myTeamStreams.length,label:"Streams"},{val:myTeamGames.filter(g=>g.status==="live").length,label:"Ao vivo"},{val:myTeamGames.filter(g=>g.status==="scheduled").length,label:"Próximos"}].map(({val,label})=>(
+                      <div key={label} style={{ background:"rgba(255,255,255,.04)",borderRadius:10,padding:"8px 14px",textAlign:"center" }}>
+                        <div style={{ fontSize:18,fontWeight:700,color:favTeam.color }}>{val}</div>
+                        <div style={{ fontSize:10,color:"#444",marginTop:2 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={()=>{ setShowOnboarding(true); setOnboardingStep(1); setFavoriteTeam(null); }}
+                  style={{ width:"100%",background:"transparent",border:"1px solid #1A1A2A",borderRadius:10,padding:"11px",color:"#444",fontFamily:"'Rajdhani',sans-serif",fontSize:12,fontWeight:700,letterSpacing:".06em",cursor:"pointer" }}>
+                  🔄 Trocar time
+                </button>
+              </>
+            ):(
+              <div style={{ textAlign:"center",padding:"60px 20px" }}>
+                <div style={{ fontSize:50,marginBottom:16 }}>⚽</div>
+                <div style={{ fontSize:16,fontWeight:700,marginBottom:8 }}>Nenhum time selecionado</div>
+                <button onClick={()=>{ setShowOnboarding(true); setOnboardingStep(1); }} style={{ background:"#E50914",border:"none",borderRadius:10,padding:"12px 24px",color:"#fff",fontFamily:"'Oswald',sans-serif",fontSize:14,fontWeight:600,cursor:"pointer" }}>ESCOLHER MEU TIME</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab==="player"&&selectedStream&&(
+          <div style={{ animation:"fadeUp .3s ease" }}>
+            <button onClick={()=>setTab("home")} style={{ background:"none",border:"none",color:"#555",fontFamily:"'Rajdhani',sans-serif",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,marginBottom:14,padding:0 }}>← Voltar</button>
+            <div ref={playerWrap} style={{ position:"relative",background:"#000",borderRadius:14,overflow:"hidden",marginBottom:16,aspectRatio:"16/9",border:"1px solid #111",cursor:"pointer" }}
+              onMouseMove={showCtrlsTemporarily} onTouchStart={showCtrlsTemporarily}
+              onClick={()=>{ if(showQualityMenu){setShowQualityMenu(false);return;} showCtrlsTemporarily(); }}>
+              <iframe key={iframeKey} src={embedUrl} style={{ width:"100%",height:"100%",border:"none",display:"block" }} allowFullScreen allow="autoplay;encrypted-media;fullscreen" title="stream" onLoad={()=>setPlayerLoading(false)}/>
+              {playerLoading&&<div style={{ position:"absolute",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:5 }}><div style={{ width:44,height:44,borderRadius:"50%",border:"3px solid #111",borderTopColor:"#E50914",animation:"spin .8s linear infinite" }}/></div>}
+              <div className={`player-overlay ${showControls?"visible":"hidden"}`}>
+                <div className="ctrl-gradient-top">
+                  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                    <div><div style={{ fontSize:13,fontWeight:700 }}>{selectedStream.title}</div><div style={{ fontSize:11,color:"#aaa",marginTop:3 }}>{netOf(selectedStream.network).icon} {selectedStream.channel}</div></div>
+                    <span className="live-pill"><span className="live-dot"/>AO VIVO</span>
+                  </div>
+                </div>
+                <div className="ctrl-gradient-bottom">
+                  <div style={{ marginBottom:14 }}>
+                    <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                      <button className="ctrl-btn" onClick={()=>setMuted(!muted)}>{muted||volume===0?"🔇":volume>60?"🔊":"🔉"}</button>
+                      <div style={{ flex:1,position:"relative",height:18,display:"flex",alignItems:"center" }}>
+                        <div className="vol-track">
+                          <div className="vol-fill" style={{ width:`${volFill}%` }}/>
+                          <div className="vol-thumb" style={{ left:`${volFill}%` }}/>
+                          <input type="range" min="0" max="100" value={volFill} className="vol-input" onChange={e=>{ setVolume(+e.target.value); if(+e.target.value>0) setMuted(false); }}/>
+                        </div>
+                      </div>
+                      <span style={{ fontSize:12,fontWeight:700,color:"#fff",minWidth:34,textAlign:"right",fontFamily:"monospace" }}>{muted?0:volume}%</span>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative" }}>
+                    <button className="ctrl-btn" onClick={e=>{ e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} style={{ width:"auto",borderRadius:8,padding:"0 12px",fontSize:11,fontWeight:700 }}>⚙ {quality}</button>
+                    <button className="ctrl-btn" onClick={toggleFullscreen}>{fullscreen?"⤡":"⤢"}</button>
+                    {showQualityMenu&&(
+                      <div className="quality-menu" onClick={e=>e.stopPropagation()}>
+                        {selectedStream.quality.map(q=>(
+                          <div key={q} className={`quality-item ${quality===q?"active":""}`} onClick={()=>changeQuality(q)}>
+                            <span>{q}</span>
+                            {quality===q&&<span>✓</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ background:"#0C0C18",border:"1px solid #111",borderRadius:14,padding:16 }}>
+              <div style={{ fontSize:16,fontWeight:700,lineHeight:1.3,marginBottom:6 }}>{selectedStream.title}</div>
+              <div style={{ fontSize:12,color:"#444",marginBottom:14 }}>{selectedStream.channel}</div>
+              <div style={{ display:"flex",gap:10,flexWrap:"wrap" }}>
+                {selectedStream.viewers&&<div style={{ background:"rgba(255,255,255,.04)",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700 }}>👁 {selectedStream.viewers}</div>}
+                <span className="live-pill" style={{ borderRadius:8,padding:"6px 12px" }}><span className="live-dot"/>AO VIVO</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"rgba(6,6,14,.97)",backdropFilter:"blur(24px)",borderTop:"1px solid #0C0C18",display:"flex" }}>
+        <button className={`tab-btn ${tab==="home"?"active":""}`} onClick={()=>setTab("home")}><span className="tab-icon">📡</span>Streams</button>
+        <button className={`tab-btn ${tab==="jogos"?"active":""}`} onClick={()=>setTab("jogos")} style={{ position:"relative" }}>
+          <span className="tab-icon">⚽</span>Jogos
+          {liveCount>0&&<span style={{ position:"absolute",top:8,right:"calc(50% - 20px)",background:"#E50914",color:"#fff",borderRadius:10,fontSize:8,fontWeight:700,padding:"1px 5px" }}>{liveCount}</span>}
+        </button>
+        <button className={`tab-btn ${tab==="meutime"?"active":""}`} onClick={()=>setTab("meutime")}>
+          <span className="tab-icon">{favTeam?favTeam.emoji:"❤️"}</span>Meu Time
+        </button>
+        <button className={`tab-btn ${tab==="player"?"active":""}`} onClick={()=>selectedStream&&setTab("player")} style={{ opacity:selectedStream?1:.3 }}><span className="tab-icon">📺</span>Player</button>
+      </div>
+    </div>
+  );
+                                  }
