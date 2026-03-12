@@ -65,3 +65,112 @@ Status: scheduled/live/final. Mínimo 20 jogos. APENAS o JSON.`;
   const games = JSON.parse(text.replace(/```json|```/g,"").trim());
   return games.map(g => ({ ...g, homeId:findTeamByName(g.home)?.id||"", awayId:findTeamByName(g.away)?.id||"" }));
 };
+export default function GoolTV() {
+  const [games, setGames] = useState([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const refreshTimer = useRef(null);
+  const prevScores = useRef({});
+  const [favoriteTeam, setFavoriteTeam] = useState(null);
+  const [notifPermission, setNotifPermission] = useState("default");
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [teamSearch, setTeamSearch] = useState("");
+  const [toastMsg, setToastMsg] = useState(null);
+  const toastTimer = useRef(null);
+  const [selectedStream, setSelectedStream] = useState(null);
+  const [activeNetwork, setActiveNetwork] = useState("all");
+  const [tab, setTab] = useState("home");
+  const [streamSearch, setStreamSearch] = useState("");
+  const [gamesLeague, setGamesLeague] = useState("Todos");
+  const [gamesTab, setGamesTab] = useState("proximos");
+  const [quality, setQuality] = useState("AUTO");
+  const [volume, setVolume] = useState(85);
+  const [muted, setMuted] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [playerLoading, setPlayerLoading] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+  const controlsTimer = useRef(null);
+  const playerWrap = useRef(null);
+
+  useEffect(() => {
+    if ("Notification" in window) setNotifPermission(Notification.permission);
+  }, []);
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMsg(null), 4000);
+  };
+
+  const loadGames = useCallback(async () => {
+    setGamesLoading(true);
+    try {
+      const result = await fetchGamesWithClaude();
+      if (favoriteTeam) {
+        result.forEach(game => {
+          if (game.status === "live") {
+            const prev = prevScores.current[game.id];
+            const team = findTeam(favoriteTeam);
+            if (prev && team) {
+              const isHome = game.homeId === favoriteTeam;
+              const isAway = game.awayId === favoriteTeam;
+              if ((isHome && game.homeScore > prev.home) || (isAway && game.awayScore > prev.away)) {
+                if (Notification.permission === "granted") new Notification(`⚽ GOL DO ${team.name.toUpperCase()}!`, { body:`${game.home} ${game.homeScore}x${game.awayScore} ${game.away}` });
+                showToast(`⚽ GOOOL! ${team.name} marcou!`);
+              }
+            }
+            prevScores.current[game.id] = { home: game.homeScore, away: game.awayScore };
+          }
+        });
+      }
+      setGames(result);
+      setLastUpdated(new Date());
+    } catch(e) { console.error(e); }
+    setGamesLoading(false);
+  }, [favoriteTeam]);
+
+  useEffect(() => {
+    loadGames();
+    refreshTimer.current = setInterval(loadGames, 5 * 60 * 1000);
+    return () => clearInterval(refreshTimer.current);
+  }, []);
+
+  const filteredStreams = activeNetwork === "all" ? STREAMS : STREAMS.filter(s => s.network === activeNetwork);
+  const searchedStreams = streamSearch.trim() ? filteredStreams.filter(s => s.title.toLowerCase().includes(streamSearch.toLowerCase())) : filteredStreams;
+  const favTeam = findTeam(favoriteTeam);
+  const liveCount = games.filter(g => g.status === "live").length;
+  const leagueNames = ["Todos", ...new Set(games.map(g => g.league))];
+  const filteredGames = games.filter(g => {
+    const lm = gamesLeague === "Todos" || g.league === gamesLeague;
+    const sm = gamesTab === "proximos" ? g.status !== "final" : g.status === "final";
+    return lm && sm;
+  }).sort((a,b) => (a.leaguePriority||99) - (b.leaguePriority||99));
+  const myTeamGames = favTeam ? games.filter(g => g.homeId === favoriteTeam || g.awayId === favoriteTeam) : [];
+  const myTeamStreams = favTeam ? STREAMS.filter(s => s.teams?.includes(favoriteTeam)) : [];
+  const filteredTeamSearch = teamSearch.trim() ? TEAMS.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase())) : null;
+
+  const showCtrlsTemporarily = useCallback(() => {
+    setShowControls(true);
+    clearTimeout(controlsTimer.current);
+    controlsTimer.current = setTimeout(() => { setShowControls(false); setShowQualityMenu(false); }, 3500);
+  }, []);
+
+  const openStream = (stream) => {
+    setSelectedStream(stream); setQuality("AUTO"); setIframeKey(k => k+1);
+    setPlayerLoading(true); setTab("player");
+    setShowControls(true); setTimeout(() => setShowControls(false), 4000);
+  };
+
+  const changeQuality = (q) => { setQuality(q); setShowQualityMenu(false); setPlayerLoading(true); setIframeKey(k=>k+1); showCtrlsTemporarily(); };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) { playerWrap.current?.requestFullscreen?.(); setFullscreen(true); }
+    else { document.exitFullscreen?.(); setFullscreen(false); }
+  };
+
+  const volFill = muted ? 0 : volume;
+  const embedUrl = selectedStream ? `https://www.youtube.com/embed/${selectedStream.videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1` : "";
+  const finishOnboarding = ()
