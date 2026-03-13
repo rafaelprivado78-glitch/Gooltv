@@ -6,6 +6,8 @@ const [jogos,setJogos] = useState([]);
 
 useEffect(()=>{
 
+function carregarJogos(){
+
 fetch("https://api.football-data.org/v4/matches",{
 headers:{
 "X-Auth-Token":"bd91c2292cc4479187eadddc25f14789"
@@ -13,8 +15,21 @@ headers:{
 })
 .then(res=>res.json())
 .then(data=>{
-setJogos(data.matches);
+
+const aoVivo = data.matches.filter(jogo =>
+jogo.status === "LIVE" ||
+jogo.status === "IN_PLAY"
+);
+
+setJogos(aoVivo);
+
 });
+
+}
+
+carregarJogos();
+
+setInterval(carregarJogos,30000);
 
 },[]);
 
