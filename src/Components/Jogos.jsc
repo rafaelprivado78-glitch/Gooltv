@@ -1,0 +1,57 @@
+import { useState, useEffect } from "react";
+
+function Jogos(){
+
+const [jogos,setJogos] = useState([]);
+
+useEffect(()=>{
+
+fetch("https://api.football-data.org/v4/matches",{
+headers:{
+"X-Auth-Token":"bd91c2292cc4479187eadddc25f14789"
+}
+})
+.then(res=>res.json())
+.then(data=>{
+setJogos(data.matches);
+});
+
+},[]);
+
+return(
+
+<div className="container">
+
+{jogos.slice(0,20).map((jogo,i)=>(
+
+<div className="card" key={i}>
+
+<img src={jogo.homeTeam.crest} width="40"/>
+
+<span>
+{jogo.homeTeam.name} vs {jogo.awayTeam.name}
+</span>
+
+<img src={jogo.awayTeam.crest} width="40"/>
+
+<button
+onClick={()=>window.open(
+`https://www.youtube.com/results?search_query=${jogo.homeTeam.name}+vs+${jogo.awayTeam.name}+ao+vivo`
+)}
+>
+
+Assistir
+
+</button>
+
+</div>
+
+))}
+
+</div>
+
+);
+
+}
+
+export default Jogos;
